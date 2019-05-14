@@ -11,6 +11,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -37,14 +38,15 @@ class MainActivity : AppCompatActivity() {
             override fun handleMessage(msg: android.os.Message) {
                 when (msg.what) {
                     RECIEVE_MESSAGE -> {
-//                        val readBuf = msg.obj as ByteArray
-//                        val strIncom = String(readBuf, 0, msg.arg1)
-//                        sb.append(strIncom)
-//                        val endOfLineIndex = sb.indexOf("\r\n")
-//                        if (endOfLineIndex > 0) {
-//                            val sbprint = sb.substring(0, endOfLineIndex)
-//                            sb.delete(0, sb.length())
-//                            txtArduino.setText("Data from Arduino: $sbprint")
+                        val readBuf = msg.obj as ByteArray
+                        val strIncom = String(readBuf, 0, msg.arg1)
+                        sb.append(strIncom)
+                        val endOfLineIndex = sb.indexOf("\r\n")
+                        showText.setText("Data from Arduino: $sb")
+                        if (endOfLineIndex > 0) {
+                            val sbprint = sb.substring(0, endOfLineIndex)
+                            sb.delete(0, sb.length)
+                            showText.setText("Data from Arduino: $sbprint")
 //                            if (flag % 4 === 3) {
 //                                rlayout.setBackgroundColor(Color.rgb(255, 255, 255))
 //                            } else if (flag % 4 === 1) {
@@ -59,11 +61,12 @@ class MainActivity : AppCompatActivity() {
 //                            btnLed2.setEnabled(true)
 //                            btnLed3.setEnabled(true)
 //                            btnpado.setEnabled(true)
-
                         }
+
                     }
                 }
             }
+        }
 
 
         btAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -74,6 +77,7 @@ class MainActivity : AppCompatActivity() {
 
         socket.connect()
         val thread = ConnectedThread(socket, h as Handler)
+        thread.start()
 
         thread.write("test")
 //        for (bt in  btAdapter.bondedDevices){
