@@ -1,6 +1,6 @@
 package com.ank.core
 
-interface BluetoothDeviceManager{
+interface IBluetoothDeviceManager{
     fun getCurrentDevice(): BluetoothDevice
     fun saveCurrentDevise(device:BluetoothDevice)
     fun startDiscovery(onNext: (BluetoothDevice))
