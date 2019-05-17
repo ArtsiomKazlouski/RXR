@@ -9,7 +9,9 @@ import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
+import java.util.ArrayList
 
 class BluetoothSelectActivity: AppCompatActivity() {
 
@@ -19,6 +21,7 @@ class BluetoothSelectActivity: AppCompatActivity() {
     private lateinit var blePref: SharedPreferences
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
+    private lateinit var dataset: MutableList<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,11 +29,19 @@ class BluetoothSelectActivity: AppCompatActivity() {
         blePref = applicationContext.getSharedPreferences(BLE_PREF_NAME, Context.MODE_PRIVATE)
 
 
-        var dataset = arrayOf("s", "x", "stupid", "kotlin", "and", "i")
+        dataset = mutableListOf("s", "x", "stupid", "kotlin", "and", "i")
+
+
 
         viewManager = LinearLayoutManager(this)
         viewAdapter = BluetoothListAdabter(dataset)
 
+        viewAdapter.notifyDataSetChanged()
+
+        findViewById<Button>(R.id.action_button).setOnClickListener { v ->
+            dataset.add("huishu")
+            viewAdapter.notifyDataSetChanged()
+        }
         findViewById<RecyclerView>(R.id.rv).apply {
             setHasFixedSize(true)
             layoutManager = viewManager
@@ -46,7 +57,7 @@ class BluetoothSelectActivity: AppCompatActivity() {
 
 }
 
-class BluetoothListAdabter(private val dataset: Array<String>) :
+class BluetoothListAdabter(private val dataset: MutableList<String>) :
     RecyclerView.Adapter<BluetoothListAdabter.MyViewHolder>() {
 
     // Provide a reference to the views for each data item

@@ -1,12 +1,13 @@
 package com.ank.core
 
 interface IBluetoothDeviceManager{
-    fun getCurrentDevice(): BluetoothDevice
-    fun saveCurrentDevise(device:BluetoothDevice)
-    fun startDiscovery(onNext: (BluetoothDevice))
+    fun getCurrentDevice(): BtDevice?
+    fun saveCurrentDevise(device:BtDevice)
+    fun startDiscovery(onNext: (btDev:BtDevice) -> Unit)
     fun stopDiscovery()
 }
 
-data class BluetoothDevice(
-    val address: String
+data class BtDevice(
+    val address: String,
+    val name: String
 )
