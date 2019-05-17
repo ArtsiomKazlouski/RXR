@@ -11,7 +11,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import java.util.ArrayList
+import com.ank.core.BtDevice
+import com.ank.core.IBluetoothDeviceManager
+import com.ank.rxr.bluetooth.BluetoothDeviceManager
 
 class BluetoothSelectActivity: AppCompatActivity() {
 
@@ -21,27 +23,26 @@ class BluetoothSelectActivity: AppCompatActivity() {
     private lateinit var blePref: SharedPreferences
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
-    private lateinit var dataset: MutableList<String>
+    private lateinit var dataset: MutableList<BtDevice>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bluetooth_select)
         blePref = applicationContext.getSharedPreferences(BLE_PREF_NAME, Context.MODE_PRIVATE)
 
-
-        dataset = mutableListOf("s", "x", "stupid", "kotlin", "and", "i")
-
-
+        dataset = mutableListOf()
 
         viewManager = LinearLayoutManager(this)
-        viewAdapter = BluetoothListAdabter(dataset)
+        viewAdapter = BluetoothListAdabter(dataset, RxrApplication.btManager)
 
         viewAdapter.notifyDataSetChanged()
 
-        findViewById<Button>(R.id.action_button).setOnClickListener { v ->
-            dataset.add("huishu")
+        var bm = BluetoothDeviceManager()
+        bm.startListenForConnectedDevices { btDev ->
+            dataset.add(btDev)
             viewAdapter.notifyDataSetChanged()
         }
+
         findViewById<RecyclerView>(R.id.rv).apply {
             setHasFixedSize(true)
             layoutManager = viewManager
@@ -57,7 +58,7 @@ class BluetoothSelectActivity: AppCompatActivity() {
 
 }
 
-class BluetoothListAdabter(private val dataset: MutableList<String>) :
+class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, val manager: IBluetoothDeviceManager) :
     RecyclerView.Adapter<BluetoothListAdabter.MyViewHolder>() {
 
     // Provide a reference to the views for each data item
@@ -82,7 +83,14 @@ class BluetoothListAdabter(private val dataset: MutableList<String>) :
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        holder.view.findViewById<TextView>(R.id.clickable_menu_text).text = dataset[position]
+        val btn = holder.view.findViewById<Button>(R.id.choose_button)
+        val device = dataset[position]
+        btn.text = device.name
+        btn.setOnClickListener { v ->
+            manager.saveCurrentDevise(device)
+        }
+
+
     }
 
     // Return the size of your dataset (invoked by the layout manager)

@@ -25,7 +25,7 @@ class BluetoothDeviceManager: IBluetoothDeviceManager{
 
     override fun saveCurrentDevise(device: BtDevice) {
 
-        var blePref = RxrApplication.getAppContext().getSharedPreferences(BLE_PREF_NAME, Context.MODE_PRIVATE)
+        var blePref = RxrApplication.context.getSharedPreferences(BLE_PREF_NAME, Context.MODE_PRIVATE)
 
         var editor = blePref.edit()
 
@@ -35,7 +35,7 @@ class BluetoothDeviceManager: IBluetoothDeviceManager{
         editor.apply()
     }
 
-    override fun startDiscovery(onNext: (btDev: BtDevice) -> Unit) {
+    override fun startListenForConnectedDevices(onNext: (btDev: BtDevice) -> Unit) {
         if (!isBtEnabled()){
             throw BtException("Enable Bt")
         }
@@ -49,7 +49,7 @@ class BluetoothDeviceManager: IBluetoothDeviceManager{
         val profileListener = object : BluetoothProfile.ServiceListener {
 
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-                if (profile == BluetoothProfile.STATE_CONNECTED) {
+                if (profile == BluetoothProfile.GATT) {
                     val device = proxy as BluetoothDevice
                     onNext(BtDevice(device.address, device.name))
                 }
@@ -60,16 +60,16 @@ class BluetoothDeviceManager: IBluetoothDeviceManager{
             }
         }
 
-        btAdapter?.getProfileProxy(RxrApplication.getAppContext(), profileListener, BluetoothProfile.STATE_CONNECTED)
+        btAdapter?.getProfileProxy(RxrApplication.context, profileListener, BluetoothProfile.GATT)
     }
 
-    override fun stopDiscovery() {
+    override fun stopListen() {
         btAdapter.cancelDiscovery()
     }
 
     override fun getCurrentDevice(): BtDevice? {
 
-        var blePref = RxrApplication.getAppContext().getSharedPreferences(BLE_PREF_NAME, Context.MODE_PRIVATE)
+        var blePref = RxrApplication.context.getSharedPreferences(BLE_PREF_NAME, Context.MODE_PRIVATE)
 
         var deviceAddress = blePref.getString(BLE_DEVICE_ADDRESS, null)
         var deviceName = blePref.getString(BLE_DEVICE_NAME, null)

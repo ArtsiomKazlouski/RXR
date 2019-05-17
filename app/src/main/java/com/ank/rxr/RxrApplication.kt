@@ -10,19 +10,15 @@ class RxrApplication : Application() {
 
     companion object {
 
-        private lateinit var context: Context
-
-        fun getAppContext() : Context{
-            return context;
-        }
+        lateinit var context: Context
+        lateinit var btManager: IBluetoothDeviceManager
     }
 
     // Overriding this method is totally optional!
     override fun onCreate() {
         super.onCreate()
         // Required initialization logic here!
-        var bManager:IBluetoothDeviceManager = BluetoothDeviceManager()
-
+        btManager = BluetoothDeviceManager()
         context = applicationContext
     }
 }
