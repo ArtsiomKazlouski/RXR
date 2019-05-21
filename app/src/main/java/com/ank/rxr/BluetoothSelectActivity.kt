@@ -1,6 +1,7 @@
 package com.ank.rxr
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -32,12 +33,18 @@ class BluetoothSelectActivity: AppCompatActivity() {
 
         dataset = mutableListOf()
 
+        var bm = BluetoothDeviceManager()
+
         viewManager = LinearLayoutManager(this)
-        viewAdapter = BluetoothListAdabter(dataset, RxrApplication.btManager)
+        viewAdapter = BluetoothListAdabter(dataset) { btDev ->
+            bm.saveCurrentDevise(btDev)
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
 
         viewAdapter.notifyDataSetChanged()
 
-        var bm = BluetoothDeviceManager()
+
         bm.startListenForConnectedDevices { btDev ->
             dataset.add(btDev)
             viewAdapter.notifyDataSetChanged()
@@ -58,7 +65,7 @@ class BluetoothSelectActivity: AppCompatActivity() {
 
 }
 
-class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, val manager: IBluetoothDeviceManager) :
+class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, var btSelected: (btDev:BtDevice) -> Unit ) :
     RecyclerView.Adapter<BluetoothListAdabter.MyViewHolder>() {
 
     // Provide a reference to the views for each data item
@@ -87,10 +94,8 @@ class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, val manag
         val device = dataset[position]
         btn.text = device.name
         btn.setOnClickListener { v ->
-            manager.saveCurrentDevise(device)
+            btSelected(device)
         }
-
-
     }
 
     // Return the size of your dataset (invoked by the layout manager)
