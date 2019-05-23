@@ -14,6 +14,8 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import android.os.Handler.Callback;
 import android.os.Message
+import com.ank.rxr.bluetooth.BluetoothComCommunicator
+import com.ank.rxr.bluetooth.BluetoothComCommunicatorFactory
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -22,14 +24,15 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.lang.StringBuilder
+import java.text.SimpleDateFormat
 
 
 class MainActivity : AppCompatActivity() {
 
-    val MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-    lateinit var  btAdapter: BluetoothAdapter
-    lateinit var btSocket: BluetoothSocket
-    public val RECIEVE_MESSAGE = 1        // Status  for Handler
+    var communicator: BluetoothComCommunicator? = null
+
+    val DATE_FORMAT = "%02d:%02d:%03d"
+    val transferDateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS")
 
     lateinit var chuseBtButton:Button;
     lateinit var startTimer:Button;
@@ -37,20 +40,6 @@ class MainActivity : AppCompatActivity() {
 
     var startAt:Date? = null
     var endAt:Date? = null
-
-    lateinit var socket:BluetoothSocket
-
-    val btMessageHandler =object : Handler() {
-        override fun handleMessage(msg: Message) {
-            when (msg.what){
-                RECIEVE_MESSAGE->{
-
-                }
-            }
-        }
-    }
-
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,48 +54,10 @@ class MainActivity : AppCompatActivity() {
         startTimer = findViewById<Button>(R.id.startTimer)
 
 
-
-
         var device = RxrApplication.btManager.getCurrentDevice()
-        if (device != null){
-            btAdapter = BluetoothAdapter.getDefaultAdapter()
-            val device = btAdapter.getRemoteDevice(device.address)
 
-
-
-            socket = device.createRfcommSocketToServiceRecord(MY_UUID)
-            socket.connect()
-
-
-            var btJob = GlobalScope.launch {
-                val mmInStream = socket.inputStream
-
-                val buffer = ByteArray(256)  // buffer store for the stream
-                var bytes: Int // bytes returned from read()
-                // Keep listening to the InputStream until an exception occurs
-
-                var sb = StringBuilder()
-                while (isActive) {
-                    try {
-                        // Read from the InputStream
-                        bytes = mmInStream!!.read(buffer)        // Get number of bytes and message in "buffer"
-                        val strIncom = String(buffer, 0, bytes)
-                        sb.append(strIncom)
-                        val endOfLineIndex = sb.indexOf("\r\n")
-                        if (endOfLineIndex > 0){
-                            val message = sb.substring(0, endOfLineIndex)
-                            sb.delete(0, sb.length)
-
-                        }
-
-                    } catch (e: IOException) {
-                        break
-                    }
-                }
-            }
-
-            val mmOutStream = socket.outputStream
-            mmOutStream.write("test".toByteArray())
+        if (device!=null){
+            communicator = BluetoothComCommunicatorFactory().createCommunicator(device.address)
         }
 
         var job = GlobalScope.launch {
@@ -125,7 +76,7 @@ class MainActivity : AppCompatActivity() {
                 millis %=1000
 
                 runOnUiThread {
-                    timerView.text = String.format("%02d:%02d:%03d", minutes, seconds, millis)
+                    timerView.text = String.format(DATE_FORMAT, minutes, seconds, millis)
                 }
             }
         }
@@ -138,11 +89,17 @@ class MainActivity : AppCompatActivity() {
                 b.text = "start"
             } else {
 
-                val mmOutStream = socket.outputStream
-                mmOutStream.write("test".toByteArray())
-
                 endAt = null
-                startAt = Date()
+                if (communicator!=null){
+                    val c = Calendar.getInstance()
+                    c.time = Date()
+                    c.add(Calendar.SECOND, 4)
+                    startAt = c.time
+                    communicator!!.write("\$c:start;d:${transferDateFormat.format(c.time)}");
+                }else{
+                    endAt = null
+                    startAt = Date()
+                }
                 b.text = "stop"
             }
         }
