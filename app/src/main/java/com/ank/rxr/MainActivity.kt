@@ -18,6 +18,10 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.lang.StringBuilder
 
 
 class MainActivity : AppCompatActivity() {
@@ -34,6 +38,8 @@ class MainActivity : AppCompatActivity() {
     var startAt:Date? = null
     var endAt:Date? = null
 
+    lateinit var socket:BluetoothSocket
+
     val btMessageHandler =object : Handler() {
         override fun handleMessage(msg: Message) {
             when (msg.what){
@@ -43,6 +49,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +63,51 @@ class MainActivity : AppCompatActivity() {
         }
         timerView = findViewById<TextView>(R.id.showTime)
         startTimer = findViewById<Button>(R.id.startTimer)
+
+
+
+
+        var device = RxrApplication.btManager.getCurrentDevice()
+        if (device != null){
+            btAdapter = BluetoothAdapter.getDefaultAdapter()
+            val device = btAdapter.getRemoteDevice(device.address)
+
+
+
+            socket = device.createRfcommSocketToServiceRecord(MY_UUID)
+            socket.connect()
+
+
+            var btJob = GlobalScope.launch {
+                val mmInStream = socket.inputStream
+
+                val buffer = ByteArray(256)  // buffer store for the stream
+                var bytes: Int // bytes returned from read()
+                // Keep listening to the InputStream until an exception occurs
+
+                var sb = StringBuilder()
+                while (isActive) {
+                    try {
+                        // Read from the InputStream
+                        bytes = mmInStream!!.read(buffer)        // Get number of bytes and message in "buffer"
+                        val strIncom = String(buffer, 0, bytes)
+                        sb.append(strIncom)
+                        val endOfLineIndex = sb.indexOf("\r\n")
+                        if (endOfLineIndex > 0){
+                            val message = sb.substring(0, endOfLineIndex)
+                            sb.delete(0, sb.length)
+
+                        }
+
+                    } catch (e: IOException) {
+                        break
+                    }
+                }
+            }
+
+            val mmOutStream = socket.outputStream
+            mmOutStream.write("test".toByteArray())
+        }
 
         var job = GlobalScope.launch {
             // launch a new coroutine in background and continue
@@ -75,8 +128,6 @@ class MainActivity : AppCompatActivity() {
                     timerView.text = String.format("%02d:%02d:%03d", minutes, seconds, millis)
                 }
             }
-            // non-blocking delay for 1 second (default time unit is ms)
-            // print after delay
         }
 
 
@@ -86,28 +137,16 @@ class MainActivity : AppCompatActivity() {
                 endAt = Date()
                 b.text = "start"
             } else {
+
+                val mmOutStream = socket.outputStream
+                mmOutStream.write("test".toByteArray())
+
                 endAt = null
                 startAt = Date()
                 b.text = "stop"
             }
         }
 
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
-        }
     }
 }
 
