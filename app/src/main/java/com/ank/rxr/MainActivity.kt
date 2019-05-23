@@ -1,5 +1,7 @@
 package com.ank.rxr
 
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -12,66 +14,35 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import android.os.Handler.Callback;
 import android.os.Message
-import android.support.v4.os.HandlerCompat.postDelayed
-import android.R.string.cancel
-
-
-
-
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
 
+    val MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+    lateinit var  btAdapter: BluetoothAdapter
+    lateinit var btSocket: BluetoothSocket
+    public val RECIEVE_MESSAGE = 1        // Status  for Handler
+
     lateinit var chuseBtButton:Button;
     lateinit var startTimer:Button;
-    lateinit var stopTimer:Button;
     lateinit var timerView:TextView;
 
-    lateinit var startAt:Date
+    var startAt:Date? = null
     var endAt:Date? = null
-    var timer = Timer()
 
-    val h = Handler(object : Callback {
+    val btMessageHandler =object : Handler() {
+        override fun handleMessage(msg: Message) {
+            when (msg.what){
+                RECIEVE_MESSAGE->{
 
-        override fun handleMessage(msg: Message): Boolean {
-            var end = if(endAt == null) Date() else endAt
-            var millis =end!!.time - startAt.time
-            var seconds = (millis / 1000).toInt()
-            val minutes = seconds / 60
-            seconds %= 60
-            millis %=1000
-
-            timerView.text = String.format("%02d:%02d:%03d", minutes, seconds, millis)
-            return false
-        }
-    })
-
-    //runs without timer be reposting self
-    var h2 = Handler()
-    var run: Runnable = object : Runnable {
-
-        override fun run() {
-            h2.postDelayed(this, 100)
+                }
+            }
         }
     }
-
-    //tells handler to send a message
-    internal inner class firstTask : TimerTask() {
-
-        override fun run() {
-            h.sendEmptyMessage(0)
-        }
-    };
-
-    //tells activity to run on ui thread
-    internal inner class secondTask : TimerTask() {
-
-        override fun run() {
-            runOnUiThread(Runnable {
-
-            })
-        }
-    };
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,20 +55,39 @@ class MainActivity : AppCompatActivity() {
         }
         timerView = findViewById<TextView>(R.id.showTime)
         startTimer = findViewById<Button>(R.id.startTimer)
-        stopTimer = findViewById<Button>(R.id.stopTimer)
+
+        var job = GlobalScope.launch {
+            // launch a new coroutine in background and continue
+            while (isActive){
+                delay(77L)
+                if (startAt == null){
+                    continue
+                }
+
+                var end = if(endAt == null) Date() else endAt
+                var millis =end!!.time - startAt!!.time
+                var seconds = (millis / 1000).toInt()
+                val minutes = seconds / 60
+                seconds %= 60
+                millis %=1000
+
+                runOnUiThread {
+                    timerView.text = String.format("%02d:%02d:%03d", minutes, seconds, millis)
+                }
+            }
+            // non-blocking delay for 1 second (default time unit is ms)
+            // print after delay
+        }
+
 
         startTimer.setOnClickListener { v ->
             val b = v as Button
             if (b.text == "stop") {
-                timer.cancel()
-                timer.purge()
-                //h2.removeCallbacks(run)
+                endAt = Date()
                 b.text = "start"
             } else {
+                endAt = null
                 startAt = Date()
-                timer = Timer()
-                timer.schedule(firstTask(), 0, 75)
-                //h2.postDelayed(run, 0)
                 b.text = "stop"
             }
         }
@@ -120,34 +110,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
-
-//internal class UpdateTimerTask(val textView:TextView) : TimerTask() {
-//
-//    lateinit var startAt:Date
-//    var endAt:Date? = null
-//
-//    fun start(){
-//        startAt = Date()
-//        endAt = null
-//    }
-//
-//    override fun run() {
-//        var end = if(endAt == null) Date() else endAt
-//
-//        val diff = startAt.time - end!!.time
-//        val seconds = diff / 1000
-//        val minutes = seconds / 60
-//        val hours = minutes / 60
-//        val days = hours / 24
-//
-//        textView.text = "$minutes $seconds"
-//    }
-//
-//    fun stop(){
-//        endAt = Date()
-//    }
-//}
-
 
 //class MainActivity : AppCompatActivity() {
 //
