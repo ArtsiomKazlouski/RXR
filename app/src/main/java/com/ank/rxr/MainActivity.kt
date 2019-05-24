@@ -14,8 +14,10 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import android.os.Handler.Callback;
 import android.os.Message
+import com.ank.rxr.bluetooth.ArduinoTimeConverter
 import com.ank.rxr.bluetooth.BluetoothComCommunicator
 import com.ank.rxr.bluetooth.BluetoothComCommunicatorFactory
+import com.ank.rxr.bluetooth.TimeSynhroArduino
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -25,6 +27,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.lang.StringBuilder
 import java.text.SimpleDateFormat
+import kotlin.collections.ArrayList
 
 
 class MainActivity : AppCompatActivity() {
@@ -32,11 +35,11 @@ class MainActivity : AppCompatActivity() {
     var communicator: BluetoothComCommunicator? = null
 
     val DATE_FORMAT = "%02d:%02d:%03d"
-    val transferDateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS")
 
     lateinit var chuseBtButton:Button;
     lateinit var startTimer:Button;
     lateinit var timerView:TextView;
+    var arduinoTimeConverter:ArduinoTimeConverter? = null
 
     var startAt:Date? = null
     var endAt:Date? = null
@@ -76,11 +79,44 @@ class MainActivity : AppCompatActivity() {
                 millis %=1000
 
                 runOnUiThread {
-                    timerView.text = String.format(DATE_FORMAT, minutes, seconds, millis)
+
+                    if (millis < 0){
+                        timerView.text = String.format("%01d", seconds*-1)
+                    }else{
+                        timerView.text = String.format(DATE_FORMAT, minutes, seconds, millis)
+                    }
+
                 }
             }
         }
 
+
+        val times = ArrayList<TimeSynhroArduino>()
+        var requestSynAt = Date()
+
+        communicator!!.subscribe { message ->
+            val key = "ack:"
+            if(message.startsWith(key)){
+
+                var tuple = TimeSynhroArduino(requestSynAt, message.substring(key.length))
+                if (tuple.getInFlight() < 100L){
+                    times.add(TimeSynhroArduino(requestSynAt, message.substring(key.length)))
+                }
+
+                if (times.count() < 10){
+                    requestSynAt = Date()
+                    communicator!!.write("^syn;")
+                }else{
+                    var minimalTime = times.sortedWith(compareBy { it.getInFlight() }).first()
+
+                    var inFlightMilis = minimalTime.getInFlight()
+                    var deviceMillis = minimalTime.requestDate.time + inFlightMilis/2
+                    var arduMillis = minimalTime.arduinoMillis
+                    arduinoTimeConverter = minimalTime.getConverter()
+                }
+            }
+        }
+        communicator!!.write("^syn;")
 
         startTimer.setOnClickListener { v ->
             val b = v as Button
@@ -90,12 +126,12 @@ class MainActivity : AppCompatActivity() {
             } else {
 
                 endAt = null
-                if (communicator!=null){
+                if (communicator!=null && arduinoTimeConverter != null){
                     val c = Calendar.getInstance()
                     c.time = Date()
                     c.add(Calendar.SECOND, 4)
                     startAt = c.time
-                    communicator!!.write("\$c:start;d:${transferDateFormat.format(c.time)}");
+                    communicator!!.write("^start\$${arduinoTimeConverter!!.toArduinoTime(startAt!!)};");
                 }else{
                     endAt = null
                     startAt = Date()
