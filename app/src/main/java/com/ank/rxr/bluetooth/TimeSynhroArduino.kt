@@ -17,12 +17,13 @@ class SynchroTimeSeries() {
     }
 
     fun refreshConverter(){
-        if (measurements.count()<2){
+        val m = measurements
+        if (m.count()<2){
             return
         }
 
-        var firstMeasure = measurements.first()
-        var lastMeasure = measurements.last()
+        var firstMeasure = m.first()
+        var lastMeasure = m.last()
 
         converter = ArduinoTimeConverter(firstMeasure, lastMeasure)
     }
@@ -33,6 +34,11 @@ class SynchroTimeSeries() {
 
     fun toArduinoTime(date:Date):ULong{
         return converter!!.toArduinoTime(date)
+    }
+
+    fun reset() {
+        measurements.clear()
+        converter = null
     }
 }
 
