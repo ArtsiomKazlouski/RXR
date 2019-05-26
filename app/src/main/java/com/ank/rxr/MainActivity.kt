@@ -14,10 +14,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import android.os.Handler.Callback;
 import android.os.Message
-import com.ank.rxr.bluetooth.ArduinoTimeConverter
-import com.ank.rxr.bluetooth.BluetoothComCommunicator
-import com.ank.rxr.bluetooth.BluetoothComCommunicatorFactory
-import com.ank.rxr.bluetooth.TimeSynhroArduino
+import com.ank.rxr.bluetooth.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -39,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var chuseBtButton:Button;
     lateinit var startTimer:Button;
     lateinit var timerView:TextView;
-    var arduinoTimeConverter:ArduinoTimeConverter? = null
+    var arduinoTimeConverter: SynchroTimeSeries = SynchroTimeSeries()
 
     var startAt:Date? = null
     var endAt:Date? = null
@@ -66,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         var job = GlobalScope.launch {
             // launch a new coroutine in background and continue
             while (isActive){
-                delay(77L)
+                delay(12L)
                 if (startAt == null){
                     continue
                 }
@@ -80,7 +77,7 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread {
 
-                    if (millis < 0){
+                    if (millis < -1000){
                         timerView.text = String.format("%01d", seconds*-1)
                     }else{
                         timerView.text = String.format(DATE_FORMAT, minutes, seconds, millis)
@@ -90,8 +87,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
-        val times = ArrayList<TimeSynhroArduino>()
         var requestSynAt = Date()
 
         communicator!!.subscribe { message ->
@@ -99,24 +94,19 @@ class MainActivity : AppCompatActivity() {
             if(message.startsWith(key)){
 
                 var tuple = TimeSynhroArduino(requestSynAt, message.substring(key.length))
-                if (tuple.getInFlight() < 100L){
-                    times.add(TimeSynhroArduino(requestSynAt, message.substring(key.length)))
-                }
-
-                if (times.count() < 10){
-                    requestSynAt = Date()
-                    communicator!!.write("^syn;")
-                }else{
-                    var minimalTime = times.sortedWith(compareBy { it.getInFlight() }).first()
-
-                    var inFlightMilis = minimalTime.getInFlight()
-                    var deviceMillis = minimalTime.requestDate.time + inFlightMilis/2
-                    var arduMillis = minimalTime.arduinoMillis
-                    arduinoTimeConverter = minimalTime.getConverter()
-                }
+                arduinoTimeConverter.addMeasurement(tuple)
             }
         }
-        communicator!!.write("^syn;")
+
+        var synchronizationJob = GlobalScope.launch {
+            // launch a new coroutine in background and continue
+            while (isActive){
+                val delay = if(arduinoTimeConverter.measurements.count()<10) 200L else 5000L
+                delay(delay)
+                requestSynAt = Date()
+                communicator!!.write("^syn;")
+            }
+        }
 
         startTimer.setOnClickListener { v ->
             val b = v as Button
@@ -126,12 +116,12 @@ class MainActivity : AppCompatActivity() {
             } else {
 
                 endAt = null
-                if (communicator!=null && arduinoTimeConverter != null){
+                if (communicator!=null && arduinoTimeConverter.converterReady()){
                     val c = Calendar.getInstance()
                     c.time = Date()
                     c.add(Calendar.SECOND, 4)
                     startAt = c.time
-                    communicator!!.write("^start\$${arduinoTimeConverter!!.toArduinoTime(startAt!!)};");
+                    communicator!!.write("^start\$${arduinoTimeConverter.toArduinoTime(c.time)};");
                 }else{
                     endAt = null
                     startAt = Date()
