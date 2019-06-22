@@ -16,15 +16,17 @@ import com.ank.core.BtDevice
 import com.ank.core.IBluetoothDeviceManager
 import com.ank.rxr.bluetooth.BluetoothDeviceManager
 
-class BluetoothSelectActivity: AppCompatActivity() {
-
-    val BLE_PREF_NAME = "Ble"
-    val BLE_DEVICE_ID = "DeviceId"
+class BluetoothSelectActivity : AppCompatActivity() {
 
     private lateinit var blePref: SharedPreferences
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
     private lateinit var dataset: MutableList<BtDevice>
+
+    companion object {
+        const val BLE_PREF_NAME = "Ble"
+        const val BLE_DEVICE_ID = "DeviceId"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +67,7 @@ class BluetoothSelectActivity: AppCompatActivity() {
 
 }
 
-class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, var btSelected: (btDev:BtDevice) -> Unit ) :
+class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, var btSelected: (btDev: BtDevice) -> Unit) :
     RecyclerView.Adapter<BluetoothListAdabter.MyViewHolder>() {
 
     // Provide a reference to the views for each data item
@@ -76,8 +78,10 @@ class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, var btSel
 
 
     // Create new views (invoked by the layout manager)
-    override fun onCreateViewHolder(parent: ViewGroup,
-                                    viewType: Int): BluetoothListAdabter.MyViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): BluetoothListAdabter.MyViewHolder {
         // create a new view
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.bluetooth_view, parent, false)
