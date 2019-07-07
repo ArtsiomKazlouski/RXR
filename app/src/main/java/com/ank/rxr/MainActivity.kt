@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             } else {
 
                 endAt = null
-                if (communicator != null && arduinoTimeConverter.converterReady()) {
+                if (arduinoTimeConverter.converterReady()) {
                     val c = Calendar.getInstance()
                     c.time = Date()
                     c.add(Calendar.SECOND, 4)

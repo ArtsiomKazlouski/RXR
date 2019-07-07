@@ -97,7 +97,7 @@ class BluetoothListAdabter(private val dataset: MutableList<BtDevice>, var btSel
         val btn = holder.view.findViewById<Button>(R.id.choose_button)
         val device = dataset[position]
         btn.text = device.name
-        btn.setOnClickListener { v ->
+        btn.setOnClickListener { _ ->
             btSelected(device)
         }
     }

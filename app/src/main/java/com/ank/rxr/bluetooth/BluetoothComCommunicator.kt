@@ -25,7 +25,7 @@ class BtCommuncationHolder{
 
     fun run(address: String){
         disconnect()
-        var communicationJob = GlobalScope.launch {
+        GlobalScope.launch {
             while (isActive){
                 try {
                     val s = socket
