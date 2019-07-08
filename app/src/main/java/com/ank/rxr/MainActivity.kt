@@ -133,7 +133,7 @@ class MainActivity : AppCompatActivity() {
                     c.time = Date()
                     c.add(Calendar.SECOND, 4)
                     startAt = c.time
-                    communicator.write("^start\$${arduinoTimeConverter.toArduinoTime(c.time)}")
+                    communicator.write("^start\$${arduinoTimeConverter.toArduinoTime(c.time)};")
                 } else {
                     endAt = null
                     startAt = Date()
